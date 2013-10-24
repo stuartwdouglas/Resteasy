@@ -12,6 +12,7 @@ import org.jboss.resteasy.plugins.interceptors.RoleBasedSecurityFeature;
 import org.jboss.resteasy.plugins.providers.RegisterBuiltin;
 import org.jboss.resteasy.plugins.providers.ServerFormUrlEncodedProvider;
 import org.jboss.resteasy.plugins.server.resourcefactory.JndiComponentResourceFactory;
+import org.jboss.resteasy.spi.metadata.ResourceClass;
 import org.jboss.resteasy.util.GetRestful;
 
 import javax.ws.rs.container.ResourceContext;
@@ -425,9 +426,18 @@ public class ResteasyDeployment
          }
       }
 
+      final Map<Class<?>, ResourceFactory> factories = new HashMap<Class<?>, ResourceFactory>();
+      for(ResourceFactory factory : getResourceFactories()) {
+         factories.put(factory.getScannableClass(), factory);
+      }
+
       for (Class actualResourceClass : actualResourceClasses)
       {
-         registry.addPerRequestResource(actualResourceClass);
+         if(factories.containsKey(actualResourceClass)) {
+            registry.addResourceFactory(factories.get(actualResourceClass));
+         } else {
+            registry.addPerRequestResource(actualResourceClass);
+         }
       }
 
       for (ResourceFactory factory : resourceFactories)
