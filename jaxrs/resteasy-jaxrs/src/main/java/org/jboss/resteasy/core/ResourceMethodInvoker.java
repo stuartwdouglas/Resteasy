@@ -63,6 +63,7 @@ public class ResourceMethodInvoker implements ResourceInvoker, JaxrsInterceptorR
    protected ResourceInfo resourceInfo;
 
    protected boolean expectsBody;
+   protected final Annotation[] methodAnnotations;
 
 
 
@@ -72,6 +73,7 @@ public class ResourceMethodInvoker implements ResourceInvoker, JaxrsInterceptorR
       this.resource = resource;
       this.parentProviderFactory = providerFactory;
       this.method = method;
+      this.methodAnnotations = method.getAnnotatedMethod().getAnnotations();
 
        resourceInfo = new ResourceInfo()
       {
@@ -206,7 +208,7 @@ public class ResourceMethodInvoker implements ResourceInvoker, JaxrsInterceptorR
 
    public Annotation[] getMethodAnnotations()
    {
-      return method.getAnnotatedMethod().getAnnotations();
+      return methodAnnotations;
    }
 
    @Override
@@ -308,7 +310,7 @@ public class ResourceMethodInvoker implements ResourceInvoker, JaxrsInterceptorR
       if (rtn == null || method.getReturnType().equals(void.class))
       {
          BuiltResponse build = (BuiltResponse) Response.noContent().build();
-         build.addMethodAnnotations(method.getAnnotatedMethod());
+         build.addMethodAnnotations(methodAnnotations);
          return build;
       }
       if (Response.class.isAssignableFrom(method.getReturnType()) || rtn instanceof Response)
@@ -321,7 +323,7 @@ public class ResourceMethodInvoker implements ResourceInvoker, JaxrsInterceptorR
             rtn = new BuiltResponse(r.getStatus(), metadata, r.getEntity(), null);
          }
          BuiltResponse rtn1 = (BuiltResponse) rtn;
-         rtn1.addMethodAnnotations(method.getAnnotatedMethod());
+         rtn1.addMethodAnnotations(methodAnnotations);
          if (rtn1.getGenericType() == null)
          {
             if (getMethod().getReturnType().equals(Response.class))
@@ -349,7 +351,7 @@ public class ResourceMethodInvoker implements ResourceInvoker, JaxrsInterceptorR
             jaxrsResponse.setGenericType(method.getGenericReturnType());
          }
       }
-      jaxrsResponse.addMethodAnnotations(method.getAnnotatedMethod());
+      jaxrsResponse.addMethodAnnotations(methodAnnotations);
       return jaxrsResponse;
    }
 
