@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -92,6 +93,11 @@ public class Servlet3AsyncHttpRequest extends HttpServletInputMessage
          }
 
          @Override
+         public void flushAsyncData(Consumer<Throwable> throwableConsumer) {
+            response.flushAsync(throwableConsumer);
+         }
+
+         @Override
          public void complete()
          {
             synchronized (responseLock)
@@ -100,7 +106,7 @@ public class Servlet3AsyncHttpRequest extends HttpServletInputMessage
                if (cancelled) return;
                AsyncContext asyncContext = getAsyncContext();
                done = true;
-               asyncContext.complete();
+               response.asyncDone();
             }
 
          }

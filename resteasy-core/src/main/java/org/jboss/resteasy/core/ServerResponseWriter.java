@@ -134,7 +134,15 @@ public class ServerResponseWriter
                commitHeaders(built, response);
             }
          };
-         OutputStream os = sendHeaders ? new CommitHeaderOutputStream(response.getOutputStream(), callback) : response.getOutputStream();
+         OutputStream os;
+         if(response.isAsyncIoRequired()) {
+            if(!response.isAsyncIOStarted()) {
+               response.startAsyncIO();
+            }
+            os = response.getOutputStream();
+         } else {
+            os = sendHeaders ? new CommitHeaderOutputStream(response.getOutputStream(), callback) : response.getOutputStream();
+         }
 
          WriterInterceptor[] writerInterceptors = null;
          if (method != null)

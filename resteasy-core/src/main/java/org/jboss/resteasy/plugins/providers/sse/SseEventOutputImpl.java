@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.Produces;
@@ -196,7 +197,7 @@ public class SseEventOutputImpl extends GenericType<OutboundSseEvent> implements
          try
          {
             internalFlushResponseToClient(true);
-            writeEvent(event);
+            return writeEvent(event);
 
          }
          catch (Exception ex)
@@ -205,11 +206,10 @@ public class SseEventOutputImpl extends GenericType<OutboundSseEvent> implements
             completableFuture.completeExceptionally(ex);
             return completableFuture;
          }
-         return CompletableFuture.completedFuture(event);
       }
    }
 
-   protected void writeEvent(OutboundSseEvent event) throws IOException
+   protected CompletionStage<?> writeEvent(OutboundSseEvent event) throws IOException
    {
       synchronized (lock)
       {
@@ -260,9 +260,27 @@ public class SseEventOutputImpl extends GenericType<OutboundSseEvent> implements
                   ((OutboundSseEventImpl) event).setMediaType(mediaType);
                }
                writer.writeTo(event, event.getClass(), null, new Annotation[]{}, mediaType, null, bout);
-               response.getOutputStream().write(bout.toByteArray());
-               response.flushBuffer();
+               if(response.isAsyncIoRequired()) {
+                  response.startAsyncIO();
+                  CompletableFuture<Object> result = new CompletableFuture<>();
+                  response.writeAsync(new BiConsumer<HttpResponse, Throwable>() {
+                     @Override
+                     public void accept(HttpResponse httpResponse, Throwable throwable) {
+                        if(throwable != null) {
+                           result.completeExceptionally(throwable);
+                        } else {
+                           result.complete(event);
+                        }
+                     }
+                  }, bout.toByteArray());
+                  return result;
+               } else {
+                  response.getOutputStream().write(bout.toByteArray());
+                  response.flushBuffer();
+                  return CompletableFuture.completedFuture(event);
+               }
             }
+            return CompletableFuture.completedFuture(event);
          }
          catch (IOException e)
          {

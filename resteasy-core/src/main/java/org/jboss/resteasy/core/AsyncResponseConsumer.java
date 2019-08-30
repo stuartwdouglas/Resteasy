@@ -383,7 +383,17 @@ public abstract class AsyncResponseConsumer
             }
             else
             {
-               subscription.request(1);
+               asyncResponse.flushAsyncData(new Consumer<Throwable>() {
+
+                  @Override
+                  public void accept(Throwable throwable) {
+                     if(throwable == null) {
+                        subscription.request(1);
+                     } else {
+                        onError(throwable);
+                     }
+                  }
+               });
             }
          });
       }

@@ -4,6 +4,7 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.ext.WriterInterceptor;
 import java.lang.annotation.Annotation;
+import java.util.function.Consumer;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -32,4 +33,8 @@ public interface ResteasyAsynchronousResponse extends AsyncResponse
    void complete();
 
    void completionCallbacks(Throwable throwable);
+
+   default void flushAsyncData(Consumer<Throwable> throwableConsumer) {
+      throwableConsumer.accept(null);
+   }
 }
