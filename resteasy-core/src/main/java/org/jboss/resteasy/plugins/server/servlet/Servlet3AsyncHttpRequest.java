@@ -31,6 +31,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -89,7 +90,7 @@ public class Servlet3AsyncHttpRequest extends HttpServletInputMessage
                if (cancelled) return false;
                AsyncContext asyncContext = getAsyncContext();
                done = true;
-               return internalResume(entity, t -> asyncContext.complete());
+               return internalResume(entity, t -> internalComplete(asyncContext));
             }
 
          }
@@ -97,15 +98,29 @@ public class Servlet3AsyncHttpRequest extends HttpServletInputMessage
          @Override
          public void complete()
          {
-            synchronized (responseLock)
-            {
+            synchronized (responseLock) {
                if (done) return;
                if (cancelled) return;
-               AsyncContext asyncContext = getAsyncContext();
                done = true;
+            }
+            internalComplete(getAsyncContext());
+
+         }
+
+         private void internalComplete(AsyncContext asyncContext) {
+            try {
+               response.getAsyncOutputStream().asyncFlush().handle(new BiFunction<Void, Throwable, Object>() {
+                  @Override
+                  public Object apply(Void aVoid, Throwable throwable) {
+                     asyncContext.complete();
+                     return null;
+                  }
+               });
+            } catch (Exception e) {
+               //just do the best we can, this is likely because getWriter has been called, so we don't care
+               //about async IO anyway
                asyncContext.complete();
             }
-
          }
 
          @Override
@@ -117,7 +132,7 @@ public class Servlet3AsyncHttpRequest extends HttpServletInputMessage
                if (cancelled) return false;
                AsyncContext asyncContext = getAsyncContext();
                done = true;
-               return internalResume(exc, t -> asyncContext.complete());
+               return internalResume(exc, t -> internalComplete(asyncContext));
             }
          }
 
