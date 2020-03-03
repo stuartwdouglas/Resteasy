@@ -166,6 +166,7 @@ public class ServerResponseWriter
                response.setOutputStream(writerContext.getOutputStream()); //propagate interceptor changes on the outputstream to the response
                callback.commit(); // just in case the output stream is never used
             }
+            onWriteComplete.accept(t);
          });
 
          try {
